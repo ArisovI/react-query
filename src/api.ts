@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const BASE_URL = 'https://api.escuelajs.co/api/v1/'
+const BASE_URL = 'https://dummyjson.com/'
 
 export const api = axios.create({
   baseURL: BASE_URL,

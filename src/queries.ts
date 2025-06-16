@@ -7,16 +7,10 @@ import {
 import { deleteProduct, getProducts } from './services'
 import type { Products } from './types'
 
-export const useGetProducts = ({
-  select,
-  offset,
-}: {
-  select: string
-  offset: number
-}) => {
-  return useQuery<Products[]>({
-    queryKey: ['products', select, offset],
-    queryFn: () => getProducts({ select, offset }),
+export const useGetProducts = () => {
+  return useQuery<{ todos: Products[] }>({
+    queryKey: ['products'],
+    queryFn: getProducts,
     placeholderData: keepPreviousData,
     staleTime: 60 * 1000,
   })
@@ -27,13 +21,27 @@ export const useDeleteProduct = () => {
 
   return useMutation({
     mutationFn: deleteProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] })
-      alert('Успешно удалено')
+
+    onMutate: async (id) => {
+      queryClient.cancelQueries({ queryKey: ['products'] })
+      const lastData = queryClient.getQueryData(['products'])
+
+      queryClient.setQueryData(['products'], (oldData) => {
+        return {
+          todos: oldData.todos.filter((el) => el.id !== id),
+        }
+      })
+
+      return { lastData }
     },
 
-    onError: () => {
-      alert('Ошибка при удалении')
+    onError: (error, _, context) => {
+      queryClient.setQueryData(['products'], context?.lastData)
+      alert('Ошибка при удалении ' + error.message)
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] })
     },
   })
 }
