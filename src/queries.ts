@@ -1,18 +1,20 @@
 import {
-  keepPreviousData,
+  useInfiniteQuery,
   useMutation,
-  useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
 import { deleteProduct, getProducts } from './services'
-import type { Products } from './types'
 
-export const useGetProducts = () => {
-  return useQuery<{ todos: Products[] }>({
+export const useGetInfinityProducts = (limit = 10) => {
+  return useInfiniteQuery({
     queryKey: ['products'],
-    queryFn: getProducts,
-    placeholderData: keepPreviousData,
-    staleTime: 60 * 1000,
+    queryFn: ({ pageParam = 0 }) => getProducts({ skip: pageParam, limit }),
+    getNextPageParam: (last) => {
+      const next = last.skip + last.limit
+
+      return next < last.total ? next : undefined
+    },
+    initialPageParam: 0,
   })
 }
 
@@ -23,7 +25,7 @@ export const useDeleteProduct = () => {
     mutationFn: deleteProduct,
 
     onMutate: async (id) => {
-      queryClient.cancelQueries({ queryKey: ['products'] })
+      await queryClient.cancelQueries({ queryKey: ['products'] })
       const lastData = queryClient.getQueryData(['products'])
 
       queryClient.setQueryData(['products'], (oldData) => {
